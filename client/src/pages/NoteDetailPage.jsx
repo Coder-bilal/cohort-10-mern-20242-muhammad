@@ -273,9 +273,9 @@ const NoteDetailPage = () => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-primary mb-1.5">
+          <span className="block text-sm font-medium text-primary mb-1.5">
             Note Content
-          </label>
+          </span>
           <NoteEditor
             content={content}
             onChange={(html) => setContent(html)}

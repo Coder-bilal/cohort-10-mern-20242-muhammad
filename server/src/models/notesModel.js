@@ -87,7 +87,7 @@ async function findAllByUser(userId, { search, pinned, favorite, category, tag, 
   let sql = `SELECT ${SELECT_COLUMNS} FROM notes WHERE user_id = ?`;
   const params = [userId];
 
-  if (search && search.trim()) {
+  if (search?.trim()) {
     sql += ' AND (title LIKE ? OR content_text LIKE ?)';
     const searchPattern = `%${search.trim()}%`;
     params.push(searchPattern, searchPattern);

@@ -6,10 +6,9 @@ const Modal = ({ isOpen, onClose, title, children }) => {
   if (!isOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-canvas/80 backdrop-blur-sm transition-opacity duration-150"
-      role="dialog"
-      aria-modal="true"
+    <dialog
+      open
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-canvas/80 backdrop-blur-sm transition-opacity duration-150 m-0 w-full h-full max-w-none max-h-none border-0"
       aria-labelledby="modal-title"
     >
       <div className="w-full max-w-xl rounded-xl border border-subtle bg-surface text-primary shadow-elevated overflow-hidden">
@@ -28,7 +27,7 @@ const Modal = ({ isOpen, onClose, title, children }) => {
         </div>
         <div className="p-6 max-h-[82vh] overflow-y-auto">{children}</div>
       </div>
-    </div>
+    </dialog>
   );
 };
 

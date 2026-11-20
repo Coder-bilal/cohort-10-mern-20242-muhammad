@@ -7,7 +7,7 @@ const authService = require('../services/authService');
  * Protect routes by verifying the JWT cookie.
  */
 async function protect(req, res, next) {
-  const token = req.cookies && req.cookies.token;
+  const token = req.cookies?.token;
 
   if (!token) {
     return next(new AppError('Authentication required', 401, 'MISSING_TOKEN'));

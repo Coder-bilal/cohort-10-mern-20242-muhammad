@@ -98,12 +98,10 @@ const CommandPalette = ({ isOpen, onClose, notes = [], onNewNote }) => {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-20 p-4 bg-canvas/80 backdrop-blur-sm"
-      role="dialog"
-      aria-modal="true"
+    <dialog
+      open
+      className="fixed inset-0 z-50 flex items-start justify-center pt-20 p-4 bg-canvas/80 backdrop-blur-sm m-0 w-full h-full max-w-none max-h-none border-0 p-0"
       aria-label="Command palette"
-      onKeyDown={handleKeyDown}
     >
       <div className="w-full max-w-lg rounded-xl border border-subtle bg-surface text-primary shadow-elevated overflow-hidden">
         <div className="flex items-center gap-3 px-4 py-3 border-b border-subtle">
@@ -113,6 +111,7 @@ const CommandPalette = ({ isOpen, onClose, notes = [], onNewNote }) => {
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder="Type a command or search notes..."
             className="w-full bg-transparent text-sm text-primary placeholder:text-muted focus:outline-none"
           />
@@ -157,7 +156,7 @@ const CommandPalette = ({ isOpen, onClose, notes = [], onNewNote }) => {
           )}
         </div>
       </div>
-    </div>
+    </dialog>
   );
 };
 
