@@ -21,9 +21,19 @@ async function register(req, res, next) {
     const { name, username, email, password } = req.body;
     let finalUsername = username;
     if (!finalUsername) {
-      const derived = (name ? name.toLowerCase().replace(/\s+/g, '_') : email.split('@')[0])
-        .replace(/[^\w]/g, '');
-      finalUsername = derived;
+      if (name) {
+        const nameCandidate = name.toLowerCase().replace(/\s+/g, '_').replace(/[^\w]/g, '');
+        if (nameCandidate.length >= 3 && nameCandidate.length <= 50 && /^\w+$/.test(nameCandidate)) {
+          finalUsername = nameCandidate;
+        }
+      }
+
+      if (!finalUsername && email) {
+        const emailCandidate = email.split('@')[0].toLowerCase().replace(/[^\w]/g, '');
+        if (emailCandidate.length >= 3 && /^\w+$/.test(emailCandidate)) {
+          finalUsername = emailCandidate.slice(0, 50);
+        }
+      }
     }
 
     if (
