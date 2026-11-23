@@ -14,14 +14,29 @@ const cookieOptions = {
 };
 
 /**
+ * @typedef {Object} RegisterRequestBody
+ * @property {string} [name] - User full name
+ * @property {string} [username] - Desired username
+ * @property {string} email - User email address
+ * @property {string} password - User plain text password
+ */
+
+/**
  * POST /api/auth/register
+ * @param {import('express').Request<{}, {}, RegisterRequestBody>} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
  */
 async function register(req, res, next) {
   try {
+    /** @type {RegisterRequestBody} */
     const { name, username, email, password } = req.body;
+
+    /** @type {string | undefined} */
     let finalUsername = username;
     if (!finalUsername) {
       if (name) {
+        /** @type {string} */
         const nameCandidate = name.toLowerCase().replace(/\s+/g, '_').replace(/[^\w]/g, '');
         if (nameCandidate.length >= 3 && nameCandidate.length <= 50 && /^\w+$/.test(nameCandidate)) {
           finalUsername = nameCandidate;
@@ -29,6 +44,7 @@ async function register(req, res, next) {
       }
 
       if (!finalUsername && email) {
+        /** @type {string} */
         const emailCandidate = email.split('@')[0].toLowerCase().replace(/[^\w]/g, '');
         if (emailCandidate.length >= 3 && /^\w+$/.test(emailCandidate)) {
           finalUsername = emailCandidate.slice(0, 50);
