@@ -23,7 +23,10 @@ const server = app.listen(PORT, () => {
 
 process.on('SIGTERM', () => {
   logger.info('SIGTERM received, shutting down gracefully');
+  const timer = setTimeout(() => process.exit(0), 5000);
+  timer.unref();
   server.close(() => {
+    clearTimeout(timer);
     logger.info('Server closed');
     process.exit(0);
   });
@@ -31,5 +34,10 @@ process.on('SIGTERM', () => {
 
 process.on('unhandledRejection', (reason, promise) => {
   logger.error({ reason, promise }, 'Unhandled Rejection — shutting down');
-  server.close(() => process.exit(1));
+  const timer = setTimeout(() => process.exit(1), 5000);
+  timer.unref();
+  server.close(() => {
+    clearTimeout(timer);
+    process.exit(1);
+  });
 });
