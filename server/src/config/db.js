@@ -57,8 +57,8 @@ async function testConnection() {
  */
 async function transaction(callback) {
   const conn = await pool.getConnection();
-  await conn.beginTransaction();
   try {
+    await conn.beginTransaction();
     const result = await callback(conn);
     await conn.commit();
     return result;

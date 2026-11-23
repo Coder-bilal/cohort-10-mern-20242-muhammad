@@ -7,6 +7,7 @@ const {
   changePassword,
 } = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware');
+const { userPasswordRateLimiter } = require('../middleware/rateLimiter');
 const {
   profileValidation,
   changePasswordValidation,
@@ -17,7 +18,7 @@ const {
 router.use(protect);
 
 router.get('/profile', getProfile);
-router.put('/profile', profileValidation, validate, updateProfile);
-router.put('/change-password', changePasswordValidation, validate, changePassword);
+router.put('/profile', userPasswordRateLimiter, profileValidation, validate, updateProfile);
+router.put('/change-password', userPasswordRateLimiter, changePasswordValidation, validate, changePassword);
 
 module.exports = router;

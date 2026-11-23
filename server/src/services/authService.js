@@ -11,7 +11,11 @@ const SALT_ROUNDS = 12;
  * @returns {Promise<string>}
  */
 async function hashPassword(password) {
-  return bcrypt.hash(password, SALT_ROUNDS);
+  try {
+    return await bcrypt.hash(password, SALT_ROUNDS);
+  } catch (err) {
+    throw err;
+  }
 }
 
 /**
@@ -21,7 +25,11 @@ async function hashPassword(password) {
  * @returns {Promise<boolean>}
  */
 async function verifyPassword(password, hash) {
-  return bcrypt.compare(password, hash);
+  try {
+    return await bcrypt.compare(password, hash);
+  } catch (err) {
+    throw err;
+  }
 }
 
 /**

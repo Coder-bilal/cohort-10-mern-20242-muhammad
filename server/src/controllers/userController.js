@@ -2,6 +2,7 @@
 
 const userModel = require('../models/userModel');
 const authService = require('../services/authService');
+const db = require('../config/db');
 const AppError = require('../utils/AppError');
 const logger = require('../config/logger');
 
@@ -85,7 +86,8 @@ async function updateProfile(req, res, next) {
     const { username, email, currentPassword, newPassword } = req.body;
     const userId = req.user.userId;
 
-    const user = await userModel.findByEmail(req.user.email);
+    // Load credential record by userId, not token's email
+    const user = await userModel.findByIdWithPassword(userId);
     if (!user) {
       return next(new AppError('User not found', 404, 'USER_NOT_FOUND'));
     }
@@ -97,6 +99,16 @@ async function updateProfile(req, res, next) {
       await assertCurrentPassword(currentPassword, user.password_hash);
     }
 
+    if (isPasswordChanging && currentPassword === newPassword) {
+      return next(
+        new AppError(
+          'New password must be different from current password',
+          400,
+          'SAME_PASSWORD'
+        )
+      );
+    }
+
     if (isEmailChanging) {
       await assertEmailAvailable(email, userId);
     }
@@ -105,14 +117,26 @@ async function updateProfile(req, res, next) {
       await assertUsernameAvailable(username, userId);
     }
 
-    await userModel.updateProfile(userId, {
-      username: username || user.username,
-      email: isEmailChanging ? email : user.email,
-    });
-
+    let newHash = null;
     if (isPasswordChanging) {
-      await applyNewPassword(userId, currentPassword, newPassword);
+      newHash = await authService.hashPassword(newPassword);
     }
+
+    // Atomically execute profile update and password update within transaction
+    await db.transaction(async (conn) => {
+      await userModel.updateProfile(
+        userId,
+        {
+          username: username || user.username,
+          email: isEmailChanging ? email : user.email,
+        },
+        conn
+      );
+
+      if (isPasswordChanging && newHash) {
+        await userModel.updatePassword(userId, newHash, conn);
+      }
+    });
 
     const updatedUser = await userModel.findById(userId);
     logger.info({ event: 'user.profile.updated', userId }, 'User profile updated successfully');
@@ -134,7 +158,8 @@ async function changePassword(req, res, next) {
     const { currentPassword, newPassword } = req.body;
     const userId = req.user.userId;
 
-    const user = await userModel.findByEmail(req.user.email);
+    // Load credential record by userId, not token's email
+    const user = await userModel.findByIdWithPassword(userId);
     if (!user) {
       return next(new AppError('User not found', 404, 'USER_NOT_FOUND'));
     }

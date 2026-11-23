@@ -5,6 +5,7 @@ const sinon = require('sinon');
 const userController = require('../../src/controllers/userController');
 const userModel = require('../../src/models/userModel');
 const authService = require('../../src/services/authService');
+const db = require('../../src/config/db');
 const AppError = require('../../src/utils/AppError');
 
 function makeRes() {
@@ -15,6 +16,12 @@ function makeRes() {
 }
 
 describe('userController (Unit Tests)', () => {
+  beforeEach(() => {
+    sinon.stub(db, 'transaction').callsFake(async (cb) => {
+      return cb({ execute: sinon.stub().resolves() });
+    });
+  });
+
   afterEach(() => {
     sinon.restore();
   });
@@ -81,7 +88,7 @@ describe('userController (Unit Tests)', () => {
       const res = makeRes();
       const next = sinon.spy();
 
-      sinon.stub(userModel, 'findByEmail').resolves(null);
+      sinon.stub(userModel, 'findByIdWithPassword').resolves(null);
 
       await userController.updateProfile(req, res, next);
 
@@ -97,7 +104,7 @@ describe('userController (Unit Tests)', () => {
       const res = makeRes();
       const next = sinon.spy();
 
-      sinon.stub(userModel, 'findByEmail').resolves({
+      sinon.stub(userModel, 'findByIdWithPassword').resolves({
         id: 1,
         email: 'old@example.com',
         password_hash: 'hashed',
@@ -119,7 +126,7 @@ describe('userController (Unit Tests)', () => {
       const res = makeRes();
       const next = sinon.spy();
 
-      sinon.stub(userModel, 'findByEmail').resolves({
+      sinon.stub(userModel, 'findByIdWithPassword').resolves({
         id: 1,
         email: 'old@example.com',
         password_hash: 'hashed',
@@ -134,6 +141,36 @@ describe('userController (Unit Tests)', () => {
       expect(err.code).to.equal('INVALID_PASSWORD');
     });
 
+    it('should throw 400 SAME_PASSWORD before writing profile if newPassword equals currentPassword', async () => {
+      const req = {
+        user: { userId: 1, email: 'old@example.com' },
+        body: {
+          username: 'changedname',
+          currentPassword: 'samePassword1',
+          newPassword: 'samePassword1',
+        },
+      };
+      const res = makeRes();
+      const next = sinon.spy();
+
+      sinon.stub(userModel, 'findByIdWithPassword').resolves({
+        id: 1,
+        username: 'oldname',
+        email: 'old@example.com',
+        password_hash: 'hashed',
+      });
+      sinon.stub(authService, 'verifyPassword').resolves(true);
+      const updateProfileSpy = sinon.spy(userModel, 'updateProfile');
+
+      await userController.updateProfile(req, res, next);
+
+      expect(next.calledOnce).to.equal(true);
+      const err = next.firstCall.args[0];
+      expect(err.statusCode).to.equal(400);
+      expect(err.code).to.equal('SAME_PASSWORD');
+      expect(updateProfileSpy.called).to.equal(false);
+    });
+
     it('should throw 409 if new email is already in use by another user', async () => {
       const req = {
         user: { userId: 1, email: 'old@example.com' },
@@ -142,13 +179,12 @@ describe('userController (Unit Tests)', () => {
       const res = makeRes();
       const next = sinon.spy();
 
-      const userStub = sinon.stub(userModel, 'findByEmail');
-      userStub.withArgs('old@example.com').resolves({
+      sinon.stub(userModel, 'findByIdWithPassword').resolves({
         id: 1,
         email: 'old@example.com',
         password_hash: 'hashed',
       });
-      userStub.withArgs('taken@example.com').resolves({
+      sinon.stub(userModel, 'findByEmail').withArgs('taken@example.com').resolves({
         id: 2,
         email: 'taken@example.com',
       });
@@ -170,7 +206,7 @@ describe('userController (Unit Tests)', () => {
       const res = makeRes();
       const next = sinon.spy();
 
-      sinon.stub(userModel, 'findByEmail').resolves({
+      sinon.stub(userModel, 'findByIdWithPassword').resolves({
         id: 1,
         username: 'oldname',
         email: 'user@example.com',
@@ -188,7 +224,7 @@ describe('userController (Unit Tests)', () => {
       expect(err.code).to.equal('DUPLICATE_ENTRY');
     });
 
-    it('should update profile and change password successfully', async () => {
+    it('should update profile and change password successfully within transaction', async () => {
       const req = {
         user: { userId: 1, email: 'user@example.com' },
         body: {
@@ -200,7 +236,7 @@ describe('userController (Unit Tests)', () => {
       const res = makeRes();
       const next = sinon.spy();
 
-      sinon.stub(userModel, 'findByEmail').resolves({
+      sinon.stub(userModel, 'findByIdWithPassword').resolves({
         id: 1,
         username: 'oldname',
         email: 'user@example.com',
@@ -237,7 +273,7 @@ describe('userController (Unit Tests)', () => {
       const res = makeRes();
       const next = sinon.spy();
 
-      sinon.stub(userModel, 'findByEmail').resolves(null);
+      sinon.stub(userModel, 'findByIdWithPassword').resolves(null);
 
       await userController.changePassword(req, res, next);
 
@@ -253,7 +289,7 @@ describe('userController (Unit Tests)', () => {
       const res = makeRes();
       const next = sinon.spy();
 
-      sinon.stub(userModel, 'findByEmail').resolves({
+      sinon.stub(userModel, 'findByIdWithPassword').resolves({
         id: 1,
         email: 'user@example.com',
         password_hash: 'hash',
@@ -276,7 +312,7 @@ describe('userController (Unit Tests)', () => {
       const res = makeRes();
       const next = sinon.spy();
 
-      sinon.stub(userModel, 'findByEmail').resolves({
+      sinon.stub(userModel, 'findByIdWithPassword').resolves({
         id: 1,
         email: 'user@example.com',
         password_hash: 'hash',

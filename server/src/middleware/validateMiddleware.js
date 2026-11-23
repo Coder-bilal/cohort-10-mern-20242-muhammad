@@ -28,13 +28,21 @@ const registerValidation = [
     .withMessage('Name must be between 2 and 100 characters'),
   emailRule(),
   body('password')
+    .isString()
+    .bail()
     .isLength({ min: 8 })
-    .withMessage('Password must be at least 8 characters long'),
+    .withMessage('Password must be at least 8 characters long')
+    .custom((value) => Buffer.byteLength(value, 'utf8') <= 72)
+    .withMessage('Password must not exceed 72 bytes'),
 ];
 
 const loginValidation = [
   emailRule(),
-  body('password').notEmpty().withMessage('Password is required'),
+  body('password')
+    .isString()
+    .bail()
+    .notEmpty()
+    .withMessage('Password is required'),
 ];
 
 const noteValidation = [
@@ -67,19 +75,33 @@ const profileValidation = [
     .withMessage('Please provide a valid email address'),
   body('currentPassword')
     .optional()
+    .isString()
+    .bail()
     .notEmpty()
     .withMessage('Current password cannot be empty'),
   body('newPassword')
     .optional()
+    .isString()
+    .bail()
     .isLength({ min: 8 })
-    .withMessage('New password must be at least 8 characters long'),
+    .withMessage('New password must be at least 8 characters long')
+    .custom((value) => Buffer.byteLength(value, 'utf8') <= 72)
+    .withMessage('New password must not exceed 72 bytes'),
 ];
 
 const changePasswordValidation = [
-  body('currentPassword').notEmpty().withMessage('Current password is required'),
+  body('currentPassword')
+    .isString()
+    .bail()
+    .notEmpty()
+    .withMessage('Current password is required'),
   body('newPassword')
+    .isString()
+    .bail()
     .isLength({ min: 8 })
-    .withMessage('New password must be at least 8 characters long'),
+    .withMessage('New password must be at least 8 characters long')
+    .custom((value) => Buffer.byteLength(value, 'utf8') <= 72)
+    .withMessage('New password must not exceed 72 bytes'),
 ];
 
 // --- validate middleware ---

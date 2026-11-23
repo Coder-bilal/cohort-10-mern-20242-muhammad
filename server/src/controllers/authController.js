@@ -19,7 +19,27 @@ const cookieOptions = {
 async function register(req, res, next) {
   try {
     const { name, username, email, password } = req.body;
-    const finalUsername = username || (name ? name.toLowerCase().replace(/\s+/g, '_') : email.split('@')[0]);
+    let finalUsername = username;
+    if (!finalUsername) {
+      const derived = (name ? name.toLowerCase().replace(/\s+/g, '_') : email.split('@')[0])
+        .replace(/[^\w]/g, '');
+      finalUsername = derived;
+    }
+
+    if (
+      !finalUsername ||
+      finalUsername.length < 3 ||
+      finalUsername.length > 50 ||
+      !/^\w+$/.test(finalUsername)
+    ) {
+      return next(
+        new AppError(
+          'Username must be between 3 and 50 alphanumeric characters or underscores',
+          400,
+          'VALIDATION_ERROR'
+        )
+      );
+    }
 
     const existingEmail = await userModel.findByEmail(email);
     if (existingEmail) {
