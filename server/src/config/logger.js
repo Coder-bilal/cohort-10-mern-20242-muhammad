@@ -28,6 +28,7 @@ const redact = {
 
 const level = process.env.LOG_LEVEL || (process.env.NODE_ENV === 'development' ? 'debug' : 'info');
 
+/** @type {import('pino').Logger} */
 let logger;
 
 if (process.env.NODE_ENV === 'production') {

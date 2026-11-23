@@ -23,6 +23,7 @@ const server = app.listen(PORT, () => {
 
 process.on('SIGTERM', () => {
   logger.info('SIGTERM received, shutting down gracefully');
+  /** @type {ReturnType<typeof setTimeout>} */
   const timer = setTimeout(() => process.exit(0), 5000);
   timer.unref();
   server.close(() => {
@@ -33,7 +34,8 @@ process.on('SIGTERM', () => {
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  logger.error({ reason, promise }, 'Unhandled Rejection — shutting down');
+  logger.error({ err: reason, promise }, 'Unhandled Rejection — shutting down');
+  /** @type {ReturnType<typeof setTimeout>} */
   const timer = setTimeout(() => process.exit(1), 5000);
   timer.unref();
   server.close(() => {
