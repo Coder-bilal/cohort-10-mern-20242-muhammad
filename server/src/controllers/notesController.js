@@ -1,11 +1,7 @@
 'use strict';
 
 const notesService = require('../services/notesService');
-const logger = require('../config/logger');
 
-/**
- * POST /api/notes
- */
 async function createNote(req, res, next) {
   try {
     const { title, content, category, tags, is_pinned, is_favorite } = req.body;
@@ -17,7 +13,6 @@ async function createNote(req, res, next) {
       is_pinned,
       is_favorite,
     });
-    logger.info({ event: 'note.created', userId: req.user.userId, noteId: note.id }, 'Note created successfully');
     return res.status(201).json({
       success: true,
       message: 'Note created successfully',
@@ -28,22 +23,50 @@ async function createNote(req, res, next) {
   }
 }
 
-/**
- * GET /api/notes
- */
 async function getAllNotes(req, res, next) {
   try {
-    const { search, pinned, favorite, category, tag, sort, page, limit } = req.query;
-    const filters = { search, pinned, favorite, category, tag, sort };
-    // Remove undefined keys so default filter calls remain clean
-    Object.keys(filters).forEach((k) => {
-      if (filters[k] === undefined) delete filters[k];
-    });
+    const { page, limit, search, favorite, pinned, category, tag, sort } = req.query;
+
+    // Validate query parameters to reject arrays/objects from repeated or bracketed keys
+    const scalarFilters = { search, category, tag, sort, favorite, pinned };
+    for (const [key, value] of Object.entries(scalarFilters)) {
+      if (value !== undefined && typeof value !== 'string') {
+        return res.status(400).json({
+          success: false,
+          message: `Query parameter "${key}" must be a string`,
+          code: 'VALIDATION_ERROR',
+        });
+      }
+    }
+
+    if (page !== undefined && typeof page !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'Query parameter "page" must be a string or number',
+        code: 'VALIDATION_ERROR',
+      });
+    }
+
+    if (limit !== undefined && typeof limit !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'Query parameter "limit" must be a string or number',
+        code: 'VALIDATION_ERROR',
+      });
+    }
+
+    // Build filters object — only include keys that were actually provided
+    const filters = {};
+    if (search !== undefined) filters.search = search;
+    if (favorite !== undefined) filters.favorite = favorite;
+    if (pinned !== undefined) filters.pinned = pinned;
+    if (category !== undefined) filters.category = category;
+    if (tag !== undefined) filters.tag = tag;
+    if (sort !== undefined) filters.sort = sort;
 
     const allNotes = await notesService.getNotesByUser(req.user.userId, filters);
     const { items: notes, pagination } = notesService.paginateNotes(allNotes, page, limit);
 
-    logger.debug({ event: 'notes.list', userId: req.user.userId, count: notes.length }, 'Notes retrieved');
     return res.json({
       success: true,
       message: 'Notes retrieved successfully',
@@ -54,13 +77,9 @@ async function getAllNotes(req, res, next) {
   }
 }
 
-/**
- * GET /api/notes/:id
- */
 async function getNoteById(req, res, next) {
   try {
     const note = await notesService.getNoteById(req.params.id, req.user.userId);
-    logger.debug({ event: 'note.get', userId: req.user.userId, noteId: note.id }, 'Note retrieved');
     return res.json({
       success: true,
       message: 'Note retrieved successfully',
@@ -71,74 +90,34 @@ async function getNoteById(req, res, next) {
   }
 }
 
-/**
- * PUT /api/notes/:id
- */
 async function updateNote(req, res, next) {
   try {
-    const updatedNote = await notesService.updateNote(req.params.id, req.user.userId, req.body);
-    logger.info({ event: 'note.updated', userId: req.user.userId, noteId: updatedNote.id }, 'Note updated successfully');
+    const { title, content, category, tags, is_pinned, is_favorite } = req.body;
+    const note = await notesService.updateNote(req.params.id, req.user.userId, {
+      title,
+      content,
+      category,
+      tags,
+      is_pinned,
+      is_favorite,
+    });
     return res.json({
       success: true,
       message: 'Note updated successfully',
-      data: { note: updatedNote },
+      data: { note },
     });
   } catch (err) {
     next(err);
   }
 }
 
-/**
- * DELETE /api/notes/:id
- */
 async function deleteNote(req, res, next) {
   try {
     await notesService.deleteNote(req.params.id, req.user.userId);
-    logger.info({ event: 'note.deleted', userId: req.user.userId, noteId: Number(req.params.id) }, 'Note deleted successfully');
     return res.json({
       success: true,
       message: 'Note deleted successfully',
       data: null,
-    });
-  } catch (err) {
-    next(err);
-  }
-}
-
-/**
- * GET /api/notes/:id/export?format=txt|pdf
- */
-async function exportNote(req, res, next) {
-  try {
-    const format = req.query.format || 'txt';
-    const { buffer, mimeType, filename } = await notesService.exportNote(
-      req.params.id,
-      req.user.userId,
-      format
-    );
-    logger.info(
-      { event: 'note.exported', userId: req.user.userId, noteId: Number(req.params.id), format },
-      'Note exported successfully'
-    );
-    res.setHeader('Content-Type', mimeType);
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    return res.status(200).send(buffer);
-  } catch (err) {
-    next(err);
-  }
-}
-
-/**
- * POST /api/notes/import
- */
-async function importNote(req, res, next) {
-  try {
-    const note = await notesService.importNote(req.user.userId, req.body);
-    logger.info({ event: 'note.imported', userId: req.user.userId, noteId: note.id }, 'Note imported successfully');
-    return res.status(201).json({
-      success: true,
-      message: 'Note imported successfully',
-      data: { note },
     });
   } catch (err) {
     next(err);
@@ -151,6 +130,4 @@ module.exports = {
   getNoteById,
   updateNote,
   deleteNote,
-  exportNote,
-  importNote,
 };
